@@ -1,0 +1,4 @@
+dog;con cho
+con cho;dog
+house;ngoi nha
+ngoi nha;house

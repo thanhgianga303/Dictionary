@@ -12,9 +12,12 @@ import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.HashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.util.Scanner;
 /**
  *
  * @author thanh
@@ -26,6 +29,8 @@ public class Server {
     BufferedReader in = null;
     BufferedWriter out= null;
     
+    static Scanner read;
+    static HashMap<String,String> hm = new HashMap<>(); 
     public Server(int port)
     {
         try {
@@ -45,8 +50,8 @@ public class Server {
                 try
                 { 
                     line = in.readLine();
-                    System.out.println("Server received: " + Integer.parseInt(line)); 
-                    out.write("aloo");
+                    System.out.println("Server received: " + line); 
+                    out.write(Transplate(line));
                     out.newLine();
                     out.flush();           
                 } 
@@ -65,7 +70,37 @@ public class Server {
             System.out.println(ex);
         }
     }
-    
+    public static String Transplate(String keyword)
+    {
+        readFile();
+        if(hm.get(keyword)!= null)
+        {
+            return hm.get(keyword);
+        }
+        else
+        {
+            return "Không tồn tại";
+        }
+    }
+    public static void readFile()
+    {
+        try {
+            File txt = new File("src/server/tudien.txt");
+            read = new Scanner(txt);
+        } catch (FileNotFoundException ex) {
+            Logger.getLogger(Server.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        while(read.hasNextLine())
+        {
+           String[] words=read.nextLine().split(";");
+           hm.put(words[0],words[1]);
+        }
+        read.close();
+        for(String words:hm.keySet())
+        {
+            System.out.print(words+" ");
+        }
+    }
     /**
      * @param args the command line arguments
      */
