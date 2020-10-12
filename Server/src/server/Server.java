@@ -18,6 +18,7 @@ import java.util.logging.Logger;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.Scanner;
+import java.util.StringTokenizer;
 /**
  *
  * @author thanh
@@ -51,6 +52,26 @@ public class Server {
                 { 
                     line = in.readLine();
                     System.out.println("Server received: " + line); 
+                    StringTokenizer st = new StringTokenizer(line,";");
+                    String action=st.nextToken();
+                    
+                    if(action.equals("add"))
+                    {
+                        while (st.hasMoreTokens())
+                        {  
+                            System.out.println(st.nextToken());
+                            System.out.println("add");
+                        }  
+                    }
+                    if(action.equals("delete"))
+                    {
+                        while (st.hasMoreTokens())
+                        {  
+                            System.out.println("remove");
+                            System.out.println(st.nextToken());  
+                        }  
+                    }
+                    
                     out.write(Transplate(line));
                     out.newLine();
                     out.flush();           
