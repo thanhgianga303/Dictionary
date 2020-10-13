@@ -17,6 +17,9 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.PrintWriter;
 import java.util.Scanner;
 import java.util.StringTokenizer;
 /**
@@ -42,8 +45,8 @@ public class Server {
             socket=server.accept();
             System.out.println("Server accepted!");
             
-            in=new BufferedReader(new InputStreamReader(socket.getInputStream()));
-            out=new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()));
+            in=new BufferedReader(new InputStreamReader(socket.getInputStream(), "UTF8"));
+            out=new BufferedWriter(new OutputStreamWriter(socket.getOutputStream(), "UTF8"));
             String line="";
             
             while(!line.equals("Over"))
@@ -55,21 +58,40 @@ public class Server {
                     StringTokenizer st = new StringTokenizer(line,";");
                     String action=st.nextToken();
                     
+                    HashMap<Integer,String> hmWriteFile = new HashMap<>();
+                    int i=1;
                     if(action.equals("add"))
                     {
                         while (st.hasMoreTokens())
                         {  
-                            System.out.println(st.nextToken());
-                            System.out.println("add");
-                        }  
+                            hmWriteFile.put(i,st.nextToken());
+                            i++;
+                        }
+                        String content1 = hmWriteFile.get(1)+";"+hmWriteFile.get(2);
+                        writeFile(content1);
+                        String content2 = hmWriteFile.get(2)+";"+hmWriteFile.get(1);
+                        writeFile(content2);
+                        System.out.println(content1);
+                        System.out.println(content2);
                     }
                     if(action.equals("delete"))
-                    {
+                    { 
                         while (st.hasMoreTokens())
                         {  
-                            System.out.println("remove");
-                            System.out.println(st.nextToken());  
-                        }  
+                            hmWriteFile.put(i,st.nextToken());
+                            i++;
+                        }
+                        String content1 = hmWriteFile.get(1)+";"+hmWriteFile.get(2);    
+                        String content2 = hmWriteFile.get(2)+";"+hmWriteFile.get(1);
+
+                       try {
+                           deleteFile(content1,content2);
+                       } catch (Exception ex) {
+                           Logger.getLogger(Server.class.getName()).log(Level.SEVERE, null, ex);
+                       }
+                             
+                           
+                        
                     }
                     
                     out.write(Transplate(line));
@@ -107,7 +129,7 @@ public class Server {
     {
         try {
             File txt = new File("src/server/tudien.txt");
-            read = new Scanner(txt);
+            read = new Scanner(txt,"UTF-8");
         } catch (FileNotFoundException ex) {
             Logger.getLogger(Server.class.getName()).log(Level.SEVERE, null, ex);
         }
@@ -121,6 +143,63 @@ public class Server {
         {
             System.out.print(words+" ");
         }
+    }
+    
+    public static void writeFile(String content)
+    {
+        FileWriter writer = null;
+        try {
+            writer = new FileWriter("src/server/tudien.txt",true);
+            BufferedWriter buffer = new BufferedWriter(writer);
+            buffer.write(content);
+            buffer.newLine();
+            buffer.close();
+            System.out.println("Success...");
+        } catch (IOException ex) {
+            Logger.getLogger(Server.class.getName()).log(Level.SEVERE, null, ex);
+        } finally {
+            try {
+                writer.close();
+            } catch (IOException ex) {
+                Logger.getLogger(Server.class.getName()).log(Level.SEVERE, null, ex);
+            }
+        }
+    }
+     public static String fileToString(String filePath) throws Exception{
+      String input = null;
+      Scanner sc = new Scanner(new File(filePath));
+      StringBuffer sb = new StringBuffer();
+      while (sc.hasNextLine()) {
+         input = sc.nextLine();
+         sb.append(input);
+      }
+      return sb.toString();
+   }
+    public static void deleteFile(String content1,String content2) throws Exception
+    {
+        System.out.println("test"+content1);
+        File inputFile = new File("src/server/tudien.txt");
+        File tempFile = new File("src/server/test.txt");
+        
+        BufferedReader reader = new BufferedReader(new FileReader("src/server/tudien.txt"));
+        BufferedWriter writer = new BufferedWriter(new FileWriter("src/server/test.txt"));
+        String currentLine; 
+        while((currentLine = reader.readLine()) != null) {
+                // trim newline when comparing with lineToRemove
+                String trimmedLine = currentLine.trim();
+                if(trimmedLine.equals(content1)) continue;
+                writer.write(currentLine + System.getProperty("line.separator"));
+            }
+        if (!inputFile.delete()) {
+        System.out.println("Could not delete file");
+        return;
+      }
+        
+        writer.close(); 
+        reader.close(); 
+        boolean successful = tempFile.renameTo(inputFile);
+        
+       
     }
     /**
      * @param args the command line arguments

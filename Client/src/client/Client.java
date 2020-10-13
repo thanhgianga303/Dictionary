@@ -27,9 +27,9 @@ public class Client {
 	{ 
 		socket = new Socket(address, port); 
 		System.out.println("Connected"); 
-		out = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()));
-		in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-		stdIn = new BufferedReader(new InputStreamReader(System.in));
+		out = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream(), "UTF8"));
+		in = new BufferedReader(new InputStreamReader(socket.getInputStream(), "UTF8"));
+		stdIn = new BufferedReader(new InputStreamReader(System.in,"iso-8859-1"));
 
 		String line = ""; 
 		while (!line.equals("Over")) 
