@@ -1,8 +1,4 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
+ 
 package client;
 
 import java.io.BufferedReader;
@@ -25,23 +21,24 @@ public class Client {
 
 	public Client(String address, int port) throws UnknownHostException, IOException
 	{ 
-                System.setProperty("file.encoding", "UTF-8");
 		socket = new Socket(address, port); 
 		System.out.println("Connected"); 
 		out = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream(), "UTF8"));
 		in = new BufferedReader(new InputStreamReader(socket.getInputStream(), "UTF8"));
-		stdIn = new BufferedReader(new InputStreamReader(System.in,"iso-8859-1"));
+		
                     
 		String line = ""; 
 		while (!line.equals("bye")) 
 		{ 
+                        System.out.println("Keywords:"); 
+                        stdIn = new BufferedReader(new InputStreamReader(System.in,"iso-8859-1"));
 			line = stdIn.readLine();
 			System.out.println("Client sent: " + line);
 			out.write(line.toLowerCase());
 			out.newLine();
 			out.flush();
-                        line = in.readLine();
-                        System.out.println("Server sent: " + line);
+                        String respServer = in.readLine(); // line nay no wait server cho toi khi server send ve thi no moi chay line 39 
+                        System.out.println("Server sent: " + respServer);
                 } 
 		in.close(); 
 		out.close(); 
@@ -56,3 +53,4 @@ public class Client {
     }
     
 }
+// tui gửi del;house lần 1 thì nó xóa dc, gửi tiếp del;fish thì nó k gửi dc, nó ngắt luôn ngay đó

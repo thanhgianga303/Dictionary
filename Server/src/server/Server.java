@@ -20,187 +20,200 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.PrintWriter;
+import java.util.Arrays;
+import java.util.Map.Entry;
 import java.util.Scanner;
 import java.util.StringTokenizer;
+
 /**
  *
  * @author thanh
  */
 public class Server {
-    private ServerSocket server= null;
-    private Socket socket= null;
-    
+
+    private ServerSocket server = null;
+    private Socket socket = null;
+
     BufferedReader in = null;
-    BufferedWriter out= null;
-    
+    BufferedWriter out = null;
+
     static Scanner read;
-    static HashMap<String,String> hm = new HashMap<>(); 
-    public Server(int port)
-    {
+    static HashMap<String, String> hm = new HashMap<>();
+    static String path = "src/server/dictionary.txt";
+
+    public Server(int port) {
+        readFile();
         try {
-            server= new ServerSocket(port);
+            server = new ServerSocket(port);
             System.out.println("Server started!");
             System.out.println("Waiting client!");
-            
-            socket=server.accept();
-            System.out.println("Server accepted!");
-            
-            in=new BufferedReader(new InputStreamReader(socket.getInputStream(), "UTF8"));
-            out=new BufferedWriter(new OutputStreamWriter(socket.getOutputStream(), "UTF8"));
-            String line="";
-            
-            while(!line.equals("Over"))
-            {
-                try
-                { 
-                    line = in.readLine();
-                    System.out.println("Server received: " + line); 
-                    StringTokenizer st = new StringTokenizer(line,";");
-                    String action=st.nextToken();
-                    
-                    HashMap<Integer,String> hmWriteFile = new HashMap<>();
-                    int i=1;
-                    if(action.equals("add"))
-                    {
-                        while (st.hasMoreTokens())
-                        {  
-                            hmWriteFile.put(i,st.nextToken());
-                            i++;
-                        }
-                        String content1 = hmWriteFile.get(1)+";"+hmWriteFile.get(2);
-                        writeFile(content1);
-                        String content2 = hmWriteFile.get(2)+";"+hmWriteFile.get(1);
-                        writeFile(content2);
-                        System.out.println(content1);
-                        System.out.println(content2);
-                    }
-                    if(action.equals("delete"))
-                    { 
-                        while (st.hasMoreTokens())
-                        {  
-                            hmWriteFile.put(i,st.nextToken());
-                            i++;
-                        }
-                        String content1 = hmWriteFile.get(1)+";"+hmWriteFile.get(2);    
-                        String content2 = hmWriteFile.get(2)+";"+hmWriteFile.get(1);
 
-                       try {
-                           deleteFile(content1,content2);
-                       } catch (Exception ex) {
-                           Logger.getLogger(Server.class.getName()).log(Level.SEVERE, null, ex);
-                       }
-                             
-                           
-                        
+            socket = server.accept();
+            System.out.println("Server accepted!");
+
+            in = new BufferedReader(new InputStreamReader(socket.getInputStream(), "UTF8"));
+            out = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream(), "UTF8"));
+            String line = "";
+            System.out.println("1" + line);
+
+            while (!line.equals("bye")) {
+                try {
+                    line = in.readLine();
+
+                    System.out.println("Server received: " + line);
+                    String[] st = line.split(";");
+
+                    if (st[0].equals("add")) {
+                        if (checkExistWords(st[1])) {
+                            out.write("This word already exists");
+                            out.newLine();
+                            out.flush();
+                        } else {
+                            hm.put(st[1], st[2]);
+                            out.write("Add success");
+                            out.newLine();
+                            out.flush();
+                        }
+                    } else if (st[0].equals("del")) {
+                        if (!checkExistWords(st[1])) {
+                            out.write("This word is not already exists");
+                            out.newLine();
+                            out.flush();
+                        } else {
+                            hm.remove(st[1]);
+                            out.write("Delete success");
+                            out.newLine();
+                            out.flush();
+                            for (String words : hm.keySet()) {
+                                System.out.print(words + " + " + hm.get(words));
+                            }
+                        }
+                    } else {
+                        if(!line.equals("bye")) {
+                            out.write(Transplate(line));
+                            out.newLine();
+                            out.flush();
+                        } else  {
+                            out.write("Server bye client");
+                            out.newLine();
+                            out.flush();
+                            break;
+                        }
                     }
-                    
-                    out.write(Transplate(line));
-                    out.newLine();
-                    out.flush();           
-                } 
-                catch(IOException i) 
-                { 
-                    System.err.println(i); 
-                } 
+                } catch (IOException i) {
+                    System.err.println(i);
+                }
             }
-        
+
             System.out.println("Closed connection");
-            in.close();
-            out.close();
-            socket.close();
-            server.close();
+            saveFile();
+            closeConnect();
         } catch (IOException ex) {
             System.out.println(ex);
         }
     }
-    public static String Transplate(String keyword)
-    {
-        readFile();
-        if(hm.get(keyword)!= null)
-        {
-            return hm.get(keyword);
+
+    public static boolean checkExistWords(String keyword) {
+        boolean check = false;
+        if (hm.get(keyword) != null) {
+            check = true;
         }
+        return check;
+    }
+
+    public void closeConnect() throws IOException {
+        in.close();
+        out.close();
+        socket.close();
+        server.close();
+    }
+
+    public String Transplate(String keyword) {
+        if (hm.get(keyword) != null) {
+            return hm.get(keyword);
+        } 
         else
         {
-            return "Không tồn tại";
+            for (Entry<String, String> entry : hm.entrySet()) {
+                if(removeAccent(entry.getValue()).equals(removeAccent(keyword)))
+               {
+//                   System.out.println(removeAccent(entry.getValue())+" va "+removeAccent(keyword));
+                   return entry.getKey();
+               }     
+         }
         }
+        return "this words is not exists";
     }
-    public static void readFile()
-    {
+
+    public void readFile() {
         try {
-            File txt = new File("src/server/tudien.txt");
-            read = new Scanner(txt,"UTF-8");
+            File txt = new File(path);
+            read = new Scanner(txt, "UTF-8");
         } catch (FileNotFoundException ex) {
             Logger.getLogger(Server.class.getName()).log(Level.SEVERE, null, ex);
         }
-        while(read.hasNextLine())
-        {
-           String[] words=read.nextLine().split(";");
-           hm.put(words[0],words[1]);
+        while (read.hasNextLine()) {
+            String[] words = read.nextLine().split(";");
+            hm.put(words[0], words[1]);
         }
         read.close();
-        for(String words:hm.keySet())
-        {
-            System.out.print(words+" ");
-        }
     }
+
+    public void saveFile() throws IOException {
+        FileWriter fWriter = new FileWriter("src/server/dictionary.txt");
+        String data = "";
+        for (String words : hm.keySet()) {
+            data = data + (words + ";" + hm.get(words) + System.getProperty("line.separator"));
+
+        }
+        fWriter.write(data);
+        fWriter.close();
+
+    }
+
+    private static char[] SOURCE_CHARACTERS = { 'À', 'Á', 'Â', 'Ã', 'È', 'É',
+            'Ê', 'Ì', 'Í', 'Ò', 'Ó', 'Ô', 'Õ', 'Ù', 'Ú', 'Ý', 'à', 'á', 'â',
+            'ã', 'è', 'é', 'ê', 'ì', 'í', 'ò', 'ó', 'ô', 'õ', 'ù', 'ú', 'ý',
+            'Ă', 'ă', 'Đ', 'đ', 'Ĩ', 'ĩ', 'Ũ', 'ũ', 'Ơ', 'ơ', 'Ư', 'ư', 'Ạ',
+            'ạ', 'Ả', 'ả', 'Ấ', 'ấ', 'Ầ', 'ầ', 'Ẩ', 'ẩ', 'Ẫ', 'ẫ', 'Ậ', 'ậ',
+            'Ắ', 'ắ', 'Ằ', 'ằ', 'Ẳ', 'ẳ', 'Ẵ', 'ẵ', 'Ặ', 'ặ', 'Ẹ', 'ẹ', 'Ẻ',
+            'ẻ', 'Ẽ', 'ẽ', 'Ế', 'ế', 'Ề', 'ề', 'Ể', 'ể', 'Ễ', 'ễ', 'Ệ', 'ệ',
+            'Ỉ', 'ỉ', 'Ị', 'ị', 'Ọ', 'ọ', 'Ỏ', 'ỏ', 'Ố', 'ố', 'Ồ', 'ồ', 'Ổ',
+            'ổ', 'Ỗ', 'ỗ', 'Ộ', 'ộ', 'Ớ', 'ớ', 'Ờ', 'ờ', 'Ở', 'ở', 'Ỡ', 'ỡ',
+            'Ợ', 'ợ', 'Ụ', 'ụ', 'Ủ', 'ủ', 'Ứ', 'ứ', 'Ừ', 'ừ', 'Ử', 'ử', 'Ữ',
+            'ữ', 'Ự', 'ự', };
+
+    // Mang cac ky tu thay the khong dau
+    private static char[] DESTINATION_CHARACTERS = { 'A', 'A', 'A', 'A', 'E',
+            'E', 'E', 'I', 'I', 'O', 'O', 'O', 'O', 'U', 'U', 'Y', 'a', 'a',
+            'a', 'a', 'e', 'e', 'e', 'i', 'i', 'o', 'o', 'o', 'o', 'u', 'u',
+            'y', 'A', 'a', 'D', 'd', 'I', 'i', 'U', 'u', 'O', 'o', 'U', 'u',
+            'A', 'a', 'A', 'a', 'A', 'a', 'A', 'a', 'A', 'a', 'A', 'a', 'A',
+            'a', 'A', 'a', 'A', 'a', 'A', 'a', 'A', 'a', 'A', 'a', 'E', 'e',
+            'E', 'e', 'E', 'e', 'E', 'e', 'E', 'e', 'E', 'e', 'E', 'e', 'E',
+            'e', 'I', 'i', 'I', 'i', 'O', 'o', 'O', 'o', 'O', 'o', 'O', 'o',
+            'O', 'o', 'O', 'o', 'O', 'o', 'O', 'o', 'O', 'o', 'O', 'o', 'O',
+            'o', 'O', 'o', 'U', 'u', 'U', 'u', 'U', 'u', 'U', 'u', 'U', 'u',
+            'U', 'u', 'U', 'u', };
+
+
+    public static char removeAccent(char ch) {
+        int index = Arrays.binarySearch(SOURCE_CHARACTERS, ch);
+        if (index >= 0) {
+            ch = DESTINATION_CHARACTERS[index];
+        }
+        return ch;
+    }
+
     
-    public static void writeFile(String content)
-    {
-        FileWriter writer = null;
-        try {
-            writer = new FileWriter("src/server/tudien.txt",true);
-            BufferedWriter buffer = new BufferedWriter(writer);
-            buffer.write(content);
-            buffer.newLine();
-            buffer.close();
-            System.out.println("Success...");
-        } catch (IOException ex) {
-            Logger.getLogger(Server.class.getName()).log(Level.SEVERE, null, ex);
-        } finally {
-            try {
-                writer.close();
-            } catch (IOException ex) {
-                Logger.getLogger(Server.class.getName()).log(Level.SEVERE, null, ex);
-            }
+    public static String removeAccent(String s) {
+        StringBuilder sb = new StringBuilder(s);
+        for (int i = 0; i < sb.length(); i++) {
+            sb.setCharAt(i, removeAccent(sb.charAt(i)));
         }
+        return sb.toString();
     }
-     public static String fileToString(String filePath) throws Exception{
-      String input = null;
-      Scanner sc = new Scanner(new File(filePath));
-      StringBuffer sb = new StringBuffer();
-      while (sc.hasNextLine()) {
-         input = sc.nextLine();
-         sb.append(input);
-      }
-      return sb.toString();
-   }
-    public static void deleteFile(String content1,String content2) throws Exception
-    {
-        System.out.println("test"+content1);
-        File inputFile = new File("src/server/tudien.txt");
-        File tempFile = new File("src/server/test.txt");
-        
-        BufferedReader reader = new BufferedReader(new FileReader("src/server/tudien.txt"));
-        BufferedWriter writer = new BufferedWriter(new FileWriter("src/server/test.txt"));
-        String currentLine; 
-        while((currentLine = reader.readLine()) != null) {
-                // trim newline when comparing with lineToRemove
-                String trimmedLine = currentLine.trim();
-                if(trimmedLine.equals(content1)) continue;
-                writer.write(currentLine + System.getProperty("line.separator"));
-            }
-        if (!inputFile.delete()) {
-        System.out.println("Could not delete file");
-        return;
-      }
-        
-        writer.close(); 
-        reader.close(); 
-        boolean successful = tempFile.renameTo(inputFile);
-        
-       
-    }
+
     /**
      * @param args the command line arguments
      */
@@ -208,5 +221,5 @@ public class Server {
         Server server = new Server(5000);
         // TODO code application logic here
     }
-    
+
 }
